@@ -329,13 +329,19 @@ export default function ReaderDashboard() {
   }, []);
 
   // Resizable Left Sidebar State
+  // Auto-collapse both sidebars on mobile (<1280px) so they don't eat the viewport.
+  // `typeof window` check prevents SSR mismatch.
   const [sidebarWidth, setSidebarWidth] = useState(270);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    typeof window !== "undefined" && window.innerWidth < 1280
+  );
   const isResizingRef = useRef(false);
 
-  // Right Telemetry Sidebar State
+  // Right Telemetry Sidebar State (also auto-collapsed on mobile — telemetry shown inline instead)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320);
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(
+    typeof window !== "undefined" && window.innerWidth < 1280
+  );
   const isRightResizingRef = useRef(false);
 
   // Saved Posts Dropdown State
@@ -1845,6 +1851,88 @@ export default function ReaderDashboard() {
                 )}
               </>
             )}
+
+            {/* ── MOBILE-ONLY TELEMETRY SECTION ─────────────────────────────────
+                 Visible only below xl (1280px). Desktop right sidebar handles xl+.
+                 Injected inside <main> so it participates in the normal scroll flow.
+            ─────────────────────────────────────────────────────────────────── */}
+            <div className="block xl:hidden mt-6 space-y-4">
+              {/* Section label */}
+              <div className={`flex items-center gap-2 pb-1 border-b ${isDark ? "border-[#2d2924]" : "border-[#e8dfd1]"}`}>
+                <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${isDark ? "text-[#a89d8f]" : "text-[#8c7e6c]"}`}>
+                  Reading Telemetry
+                </span>
+              </div>
+
+              {/* Weekly Activity Card — same component, same data, same props */}
+              <WeeklyActivityCard
+                activities={readingActivities}
+                savedTotal={savedTotal}
+                isDark={isDark}
+              />
+
+              {/* Continue Reading Cards — 2-col grid on wider phones, 1-col on smallest */}
+              {articles.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className={`font-serif font-bold ${isDark ? "text-[#f5efe6]" : "text-[#1f1c19]"}`}>Continue Reading</span>
+                    <span className={`font-mono text-[10px] ${isDark ? "text-[#8c8172]" : "text-[#8c7e6c]"}`}>2 in progress</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {articles.slice(0, 2).map(a => (
+                      <div
+                        key={a.id}
+                        onClick={() => handleSelectArticle(a)}
+                        className={`p-2.5 rounded-xl border flex items-center gap-3 cursor-pointer transition-all shadow-xs relative overflow-hidden ${
+                          isDark
+                            ? "bg-[#181614] border-[#2d2924] hover:border-[#fbbf24]/50"
+                            : "bg-[#fdfaf5] border-[#e8dfd1] hover:border-[#b45309]/50"
+                        }`}
+                      >
+                        <BlogCardSpotlight isDark={isDark} />
+                        <img
+                          src={a.image || getFallbackImage(a.id)}
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0 relative z-10"
+                          alt=""
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            const fallback = getFallbackImage(a.id);
+                            if (target.src !== fallback) target.src = fallback;
+                          }}
+                        />
+                        <div className="flex-1 min-w-0 relative z-10">
+                          <h5 className={`font-serif text-xs font-semibold truncate ${isDark ? "text-[#f5efe6]" : "text-[#1f1c19]"}`}>{a.title}</h5>
+                          <p className={`font-mono text-[10px] truncate ${isDark ? "text-[#8c8172]" : "text-[#8c7e6c]"}`}>
+                            {a.blogName} • {readingProgress[a.id] ? `${readingProgress[a.id]}% done` : a.readTime}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Intentional Web quote card */}
+              <div className={`p-4 rounded-2xl border space-y-2 shadow-xs relative overflow-hidden ${
+                isDark ? "bg-[#181614] border-[#2d2924]" : "bg-[#fdfaf5] border-[#e8dfd1]"
+              }`}>
+                <BlogCardSpotlight isDark={isDark} />
+                <div className="relative z-10 space-y-2">
+                  <span className="text-xs font-mono uppercase tracking-widest text-[#b45309] font-bold">Intentional Web</span>
+                  <p className={`font-serif text-xs italic leading-relaxed ${isDark ? "text-[#aba092]" : "text-[#574e44]"}`}>
+                    "When you follow blogs directly via RSS, you escape the dopamine casino. You read what you chose, when you chose."
+                  </p>
+                  <button
+                    onClick={() => setActiveTab("discover")}
+                    className="text-xs font-serif font-bold text-[#b45309] hover:underline flex items-center gap-1 pt-1"
+                  >
+                    <span>Explore Discovery Hub</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {/* ── END MOBILE-ONLY TELEMETRY ────────────────────────────────────── */}
 
           </div>
         </main>
